@@ -25,12 +25,12 @@ task clean(type: Delete) {
 
 
 ext {
-    compileSdkVersion = 28
+    compileSdkVersion = 29
     buildToolsVersion = '28.0.3'
     minSdkVersion = 15
-    targetSdkVersion = 28
+    targetSdkVersion = 29
     publishVersionName = '1.4.0'
-    publishVersionCode = 12
+    publishVersionCode = 13
 
     currentVersionDesc = 'WifiUtils current version'
     bintrayRepo = 'maven'

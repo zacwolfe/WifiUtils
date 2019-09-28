@@ -44,6 +44,7 @@ public final class ConnectorUtils {
         final List<WifiConfiguration> configurations = wifiMgr.getConfiguredNetworks();
         sortByPriority(configurations);
 
+        boolean modified = false;
         int tempCount = 0;
         final int numOpenNetworksKept = Build.VERSION.SDK_INT >= 17
                 ? Settings.Secure.getInt(resolver, Settings.Global.WIFI_NUM_OPEN_NETWORKS_KEPT, 10)
@@ -54,11 +55,13 @@ public final class ConnectorUtils {
             if (Objects.equals(ConfigSecurities.SECURITY_NONE, ConfigSecurities.getSecurity(config))) {
                 tempCount++;
                 if (tempCount >= numOpenNetworksKept) {
+                    modified = true;
                     wifiMgr.removeNetwork(config.networkId);
                 }
             }
         }
-        return true;
+        return !modified || (Build.VERSION.SDK_INT < 26  && wifiMgr.saveConfiguration());
+
     }
 
     private static int getMaxPriority(@NonNull final WifiManager wifiManager) {
@@ -80,6 +83,10 @@ public final class ConnectorUtils {
             final WifiConfiguration config = configurations.get(i);
             config.priority = i;
             wifiMgr.updateNetwork(config);
+        }
+
+        if (Build.VERSION.SDK_INT < 26) {
+            wifiMgr.saveConfiguration();
         }
         return size;
     }
@@ -181,6 +188,12 @@ public final class ConnectorUtils {
         if (id == -1)
             return false;
 
+        if (Build.VERSION.SDK_INT < 26) {
+            if (!wifiManager.saveConfiguration()) {
+                wifiLog("Couldn't save wifi config");
+                return false;
+            }
+        }
         // We have to retrieve the WifiConfiguration after save
         config = ConfigSecurities.getWifiConfiguration(wifiManager, config);
         if (config == null) {
@@ -215,6 +228,11 @@ public final class ConnectorUtils {
 
         // Do not disable others
         if (!wifiManager.enableNetwork(networkId, false)) {
+            config.priority = oldPri;
+            return false;
+        }
+
+        if (!wifiManager.saveConfiguration()) {
             config.priority = oldPri;
             return false;
         }
@@ -347,7 +365,13 @@ public final class ConnectorUtils {
         if (config == null)
             return true;
 
-        return wifiManager.removeNetwork(config.networkId);
+        if (wifiManager.removeNetwork(config.networkId)) {
+            if (Build.VERSION.SDK_INT < 26) {
+                return wifiManager.saveConfiguration();
+            }
+            return true;
+        }
+        return false;
     }
 
     static boolean cleanPreviousConfiguration(@NonNull final WifiManager wifiManager, @Nullable final WifiConfiguration config) {
@@ -357,7 +381,13 @@ public final class ConnectorUtils {
         if (config == null)
             return true;
 
-        return wifiManager.removeNetwork(config.networkId);
+        if (wifiManager.removeNetwork(config.networkId)) {
+            if (Build.VERSION.SDK_INT < 26) {
+                return wifiManager.saveConfiguration();
+            }
+            return true;
+        }
+        return false;
     }
 
     static void reenableAllHotspots(@NonNull WifiManager wifi) {

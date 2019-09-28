@@ -37,5 +37,10 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.0.0-beta02'
 }
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.srcDirs
+}
 //apply from: 'install.gradle'
 //apply from: 'bintray.gradle'
